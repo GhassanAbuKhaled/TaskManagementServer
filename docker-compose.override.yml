@@ -1,0 +1,24 @@
+version: '3.8'
+
+# Development overrides
+services:
+  app:
+    environment:
+      # Development-specific settings
+      SPRING_JPA_SHOW_SQL: "true"
+      LOG_LEVEL: "DEBUG"
+      SPRING_PROFILES_ACTIVE: "dev"
+    volumes:
+      # Enable hot reload for development (optional)
+      - ./src:/app/src:ro
+    ports:
+      - "8080:8080"
+      - "5005:5005"  # Debug port
+    command: ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", "-jar", "/app/app.jar"]
+
+  mysql:
+    environment:
+      # Development database settings
+      MYSQL_ROOT_PASSWORD: "dev_root_password"
+    ports:
+      - "3306:3306"  # Expose MySQL port for development tools
