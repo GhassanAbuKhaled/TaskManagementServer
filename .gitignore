@@ -31,3 +31,30 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Security & Environment ###
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+### AWS Keys ###
+*.pem
+taskmanagerK.pem
+
+### Docker ###
+.dockerignore
+
+### Database ###
+*.db
+*.sqlite
+*.sqlite3
+
+### Logs ###
+*.log
+logs/
+
+### OS ###
+.DS_Store
+Thumbs.db
