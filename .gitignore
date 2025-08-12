@@ -34,14 +34,38 @@ build/
 
 ### Security & Environment ###
 .env
-.env.local
-.env.production
-.env.staging
+.env.*
+!.env.example
 *.env
 
-### AWS Keys ###
+### Secrets & Keys ###
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+secrets.txt
+secrets.json
+secrets.yml
+secrets.yaml
+config/secrets/
+
+### AWS & Cloud ###
 *.pem
 taskmanagerK.pem
+TaskmanageraAppK.pem
+.aws/
+credentials
+aws-credentials
+
+### JWT & Tokens ###
+jwt-secret*
+token*
+*.token
+
+### Database Credentials ###
+db-password*
+database-credentials*
 
 ### Docker ###
 .dockerignore
@@ -58,3 +82,7 @@ logs/
 ### OS ###
 .DS_Store
 Thumbs.db
+
+### Documentation ###
+*.md
+!README.md

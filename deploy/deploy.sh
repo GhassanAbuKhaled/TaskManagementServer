@@ -1,53 +1,76 @@
 #!/bin/bash
 
-# Deployment Script for Task Manager Application
-# Run this script on EC2 after setup-ec2.sh
-
 set -e
 
-echo "🚀 Deploying Task Manager Application..."
-
-# Check if .env.prod exists
-if [ ! -f .env.prod ]; then
-    echo "❌ Error: .env.prod file not found!"
-    echo "Please create .env.prod file with your RDS details"
-    exit 1
+# Check dependencies
+if ! command -v aws &> /dev/null; then
+  echo "ERROR: aws CLI is not installed"
+  exit 1
+fi
+if ! command -v jq &> /dev/null; then
+  echo "ERROR: jq is not installed"
+  exit 1
 fi
 
-# Validate required environment variables
-echo "🔍 Validating environment variables..."
-source .env.prod
+echo "🚀 Starting deployment..."
 
-required_vars=("SPRING_DATASOURCE_URL" "SPRING_DATASOURCE_USERNAME" "SPRING_DATASOURCE_PASSWORD" "JWT_SECRET")
-for var in "${required_vars[@]}"; do
-    if [ -z "${!var}" ]; then
-        echo "❌ Error: $var is not set in .env.prod"
-        exit 1
-    fi
-done
+# Load secrets from AWS Secrets Manager
+echo "🔐 Loading secrets..."
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+    --secret-id prod/taskmanager/app-config \
+    --query SecretString \
+    --output text) || {
+  echo "ERROR: Failed to get secrets from AWS"
+  exit 1
+}
+
+# Export environment variables
+export_if_exists() {
+  local key="$1"
+  local value=$(echo "$SECRET_JSON" | jq -r --arg k "$key" '.[$k] // empty')
+  if [ -n "$value" ]; then
+    export "$key"="$value"
+  fi
+}
+
+export_if_exists SPRING_PROFILES_ACTIVE
+export_if_exists SPRING_DATASOURCE_URL
+export_if_exists SPRING_DATASOURCE_USERNAME
+export_if_exists SPRING_DATASOURCE_PASSWORD
+export_if_exists SPRING_JPA_HIBERNATE_DDL_AUTO
+export_if_exists SPRING_JPA_SHOW_SQL
+export_if_exists JWT_SECRET
+export_if_exists JWT_EXPIRATION
+export_if_exists JWT_REFRESH_EXPIRATION
+export_if_exists CORS_ALLOWED_ORIGINS
+export_if_exists SERVER_PORT
+export_if_exists LOG_LEVEL
+export_if_exists HIBERNATE_BATCH_SIZE
+export_if_exists MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+export_if_exists MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
+
+echo "✅ Secrets loaded"
 
 # Stop existing containers
 echo "🛑 Stopping existing containers..."
 docker-compose -f docker-compose.prod.yml down || true
 
-# Build and start the application
-echo "🏗️ Building and starting application..."
-docker-compose -f docker-compose.prod.yml up -d --build
+# Pull latest image
+echo "📥 Pulling latest image..."
+docker-compose -f docker-compose.prod.yml pull
 
-# Wait for application to start
-echo "⏳ Waiting for application to start..."
+# Start application
+echo "🚀 Starting application..."
+docker-compose -f docker-compose.prod.yml up -d
+
+# Wait and check health
+echo "⏳ Waiting for application..."
 sleep 30
 
-# Check application health
-echo "🏥 Checking application health..."
 if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
-    echo "✅ Application is healthy and running!"
-    echo "🌐 Application URL: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8080"
+    echo "✅ Deployment successful!"
 else
-    echo "❌ Application health check failed"
-    echo "📋 Checking logs..."
+    echo "❌ Health check failed"
     docker-compose -f docker-compose.prod.yml logs app
     exit 1
 fi
-
-echo "🎉 Deployment completed successfully!"
