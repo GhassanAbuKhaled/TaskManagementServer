@@ -26,37 +26,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            // Enable CORS with custom configuration
+        return http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            
-            // Disable CSRF for stateless API
             .csrf(csrf -> csrf.disable())
-            
-            // Set session management to stateless
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // Security headers
             .headers(headers -> headers
-                .frameOptions().deny()
-                .contentTypeOptions().and()
-                .httpStrictTransportSecurity(hsts -> hsts
-                    .maxAgeInSeconds(31536000)
-                    .includeSubdomains(true))
+                .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000).includeSubDomains(true))
             )
-            
-            // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
-            
-            // Add custom filters
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .build();
     }
 
     @Bean
