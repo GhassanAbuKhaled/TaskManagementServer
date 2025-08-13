@@ -4,6 +4,7 @@ import com.dev.ghassan.taskmanager.dto.*;
 import com.dev.ghassan.taskmanager.exception.TokenRefreshException;
 import com.dev.ghassan.taskmanager.model.RefreshToken;
 import com.dev.ghassan.taskmanager.security.JwtUtil;
+import com.dev.ghassan.taskmanager.service.PasswordResetService;
 import com.dev.ghassan.taskmanager.service.RefreshTokenService;
 import com.dev.ghassan.taskmanager.service.UserService;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final UserService userService;
     private final RefreshTokenService refreshTokenService;
+    private final PasswordResetService passwordResetService;
     private final JwtUtil jwtUtil;
     
     @Value("${jwt.expiration:900000}")
@@ -83,5 +85,30 @@ public class AuthController {
         // Invalidate refresh tokens for the user
         // This would be implemented based on your refresh token strategy
         return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Password reset request for email: {}", request.getEmail());
+        passwordResetService.initiatePasswordReset(request.getEmail());
+        return ResponseEntity.ok("Password reset email sent successfully");
+    }
+    
+    @PostMapping("/verify-reset-token")
+    public ResponseEntity<String> verifyResetToken(@Valid @RequestBody VerifyTokenRequest request) {
+        log.info("Token verification request received");
+        boolean isValid = passwordResetService.verifyResetToken(request.getToken());
+        if (isValid) {
+            return ResponseEntity.ok("Token is valid");
+        } else {
+            return ResponseEntity.badRequest().body("Invalid or expired token");
+        }
+    }
+    
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        log.info("Password reset confirmation received");
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Password reset successfully");
     }
 }

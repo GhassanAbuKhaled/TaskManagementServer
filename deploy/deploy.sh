@@ -64,6 +64,7 @@ export_if_exists LOG_LEVEL
 export_if_exists HIBERNATE_BATCH_SIZE
 export_if_exists MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
 export_if_exists MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
+export_if_exists TASKFLOW_SENDGRID_API_KEY
 
 # Validate critical secrets
 for required in SPRING_DATASOURCE_URL SPRING_DATASOURCE_PASSWORD JWT_SECRET; do
